@@ -1,6 +1,6 @@
-# This file is copied/apdated from
-# https://raw.githubusercontent.com/transedward/pytorch-dqn/master/utils/atari_wrapper.py
-
+"""
+    This file is copied/apdated from https://github.com/berkeleydeeprlcourse/homework/tree/master/hw3
+"""
 import numpy as np
 from collections import deque
 import gym
@@ -112,38 +112,42 @@ def _process_frame84(frame):
     resized_screen = img.resize((84, 110), Image.BILINEAR)
     resized_screen = np.array(resized_screen)
     x_t = resized_screen[18:102, :]
-    x_t = np.reshape(x_t, [1, 84, 84])
+    x_t = np.reshape(x_t, [84, 84, 1])
     return x_t.astype(np.uint8)
 
-def _process_frame42(frame):
-    img = np.reshape(frame, [210, 160, 3]).astype(np.float32)
-    img = img[:, :, 0] * 0.299 + img[:, :, 1] * 0.587 + img[:, :, 2] * 0.114
-    img = img[34:34 + 160, :160]
-    img = Image.fromarray(img)
-    img = img.resize((80, 80), Image.BILINEAR)
-    img = img.resize((42, 42), Image.BILINEAR)
-    resized_screen = np.array(img).reshape(1, 42, 42)
-    return resized_screen.astype(np.uint8)
-
-class ProcessFrame(gym.Wrapper):
-    def __init__(self, env=None, frame_size=84):
-        super(ProcessFrame, self).__init__(env)
-        self.observation_space = spaces.Box(low=0, high=255, shape=(1, frame_size, frame_size))
-        if frame_size == 84:
-            self.process_fn = _process_frame84
-        elif frame_size == 42:
-            self.process_fn = _process_frame42
-        else:
-            assert False, "Unknown frame size"
+class ProcessFrame84(gym.Wrapper):
+    def __init__(self, env=None):
+        super(ProcessFrame84, self).__init__(env)
+        self.observation_space = spaces.Box(low=0, high=255, shape=(84, 84, 1))
 
     def _step(self, action):
         obs, reward, done, info = self.env.step(action)
-        return self.process_fn(obs), reward, done, info
+        return _process_frame84(obs), reward, done, info
 
     def _reset(self):
-        return self.process_fn(self.env.reset())
+        return _process_frame84(self.env.reset())
 
 class ClippedRewardsWrapper(gym.Wrapper):
     def _step(self, action):
         obs, reward, done, info = self.env.step(action)
         return obs, np.sign(reward), done, info
+
+def wrap_deepmind_ram(env):
+    env = EpisodicLifeEnv(env)
+    env = NoopResetEnv(env, noop_max=30)
+    env = MaxAndSkipEnv(env, skip=4)
+    if 'FIRE' in env.unwrapped.get_action_meanings():
+        env = FireResetEnv(env)
+    env = ClippedRewardsWrapper(env)
+    return env
+
+def wrap_deepmind(env):
+    assert 'NoFrameskip' in env.spec.id
+    env = EpisodicLifeEnv(env)
+    env = NoopResetEnv(env, noop_max=30)
+    env = MaxAndSkipEnv(env, skip=4)
+    if 'FIRE' in env.unwrapped.get_action_meanings():
+        env = FireResetEnv(env)
+    env = ProcessFrame84(env)
+    env = ClippedRewardsWrapper(env)
+    return env

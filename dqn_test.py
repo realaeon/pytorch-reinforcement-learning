@@ -16,17 +16,14 @@ from copy import deepcopy
 from PIL import Image
 
 from memory import *#ReplayMemory
-from model import DQN
+from model import *
 from tf_logger import Logger
+from atari_task import *
+
 
 env = gym.make('CartPole-v0').unwrapped
+task = CartPole()
 
-# set up matplotlib
-is_ipython = 'inline' in matplotlib.get_backend()
-if is_ipython:
-    from IPython import display
-
-plt.ion()
 
 # if gpu is to be used
 use_cuda = torch.cuda.is_available()
@@ -44,51 +41,17 @@ resize = T.Compose([T.ToPILImage(),
                     T.Scale(40, interpolation=Image.CUBIC),
                     T.ToTensor()])
 
-# This is based on the code from gym.
-screen_width = 600
-
-
-def get_cart_location():
-    world_width = env.x_threshold * 2
-    scale = screen_width / world_width
-    return int(env.state[0] * scale + screen_width / 2.0)  # MIDDLE OF CART
-
-
-def get_screen():
-    screen = env.render(mode='rgb_array').transpose(
-        (2, 0, 1))  # transpose into torch order (CHW)
-    # Strip off the top and bottom of the screen
-    screen = screen[:, 160:320]
-    view_width = 320
-    cart_location = get_cart_location()
-    if cart_location < view_width // 2:
-        slice_range = slice(view_width)
-    elif cart_location > (screen_width - view_width // 2):
-        slice_range = slice(-view_width, None)
-    else:
-        slice_range = slice(cart_location - view_width // 2,
-                            cart_location + view_width // 2)
-    # Strip off the edges, so that we have a square image centered on a cart
-    screen = screen[:, :, slice_range]
-    # Convert to float, rescare, convert to torch tensor
-    # (this doesn't require a copy)
-    screen = np.ascontiguousarray(screen, dtype=np.float32) / 255
-    screen = torch.from_numpy(screen)
-    # Resize, and add a batch dimension (BCHW)
-    return resize(screen).unsqueeze(0).type(Tensor)
 
 #env.reset()
 
-BATCH_SIZE = 12
+BATCH_SIZE = 120
 GAMMA = 0.999
 EPS_START = 0.9
 EPS_END = 0.05
 EPS_DECAY = 200
 
-model = DQN()
+model = testNet(4,10,2)
 
-if use_cuda:
-    model.cuda()
 
 optimizer = optim.RMSprop(model.parameters())
 memory = ReplayMemory(10000)
@@ -104,9 +67,8 @@ def select_action(state):
         math.exp(-1. * steps_done / EPS_DECAY)
     steps_done += 1
     if sample > eps_threshold:
-#        print('----'+model(Variable(state, volatile=True).type(FloatTensor)).data)
         return model(
-            Variable(state, volatile=True).type(FloatTensor)).data.max(1)[1].view(1, 1)
+            Variable(state, volatile=True).type(FloatTensor)).data.max(0)[1].view(1, 1)
     else:
         return LongTensor([[random.randrange(2)]])
 
@@ -152,11 +114,11 @@ def optimize_model(t):
     # We don't want to backprop through the expected action values and volatile
     # will save us on temporarily changing the model parameters'
     # requires_grad to False!
+#    print(batch)
     non_final_next_states = Variable(torch.cat([s for s in batch.next_state
                                                 if s is not None]),
                                      volatile=True)
     state_batch = Variable(torch.cat(batch.state))
-    print(state_batch)
     action_batch = Variable(torch.cat(batch.action))
     reward_batch = Variable(torch.cat(batch.reward))
 
@@ -193,7 +155,7 @@ def optimize_model(t):
 
 
     
-num_episodes = 20
+num_episodes = 1000
 
 logger = Logger('./logs')
 def to_np(x):
@@ -202,25 +164,26 @@ def to_np(x):
 i=0
 for i_episode in range(num_episodes):
     # Initialize the environment and state
-    env.reset()
-    last_screen = get_screen()
-    current_screen = get_screen()
-    state = current_screen - last_screen
+    state=env.reset()
+    state = FloatTensor(state)
+
     for t in count():
         # Select and perform an action
+
+        print(state)
+        state=state.view(4)
         action = select_action(state)
-        _, reward, done, _ = env.step(action[0, 0])
+        next_state, reward, done, _ = env.step(action[0,0])
+        env.render()
+        next_state = FloatTensor(next_state)
         reward = Tensor([reward])
 
         # Observe new state
-        last_screen = current_screen
-        current_screen = get_screen()
-        if not done:
-            next_state = current_screen - last_screen
-        else:
-            next_state = None
+
 
         # Store the transition in memory
+        state=state.view(1,-1)
+        next_state=state.view(1,-1)
         memory.push(state, action, next_state, reward, done)
 
         # Move to the next state
@@ -239,9 +202,3 @@ env.render(close=True)
 env.close()
 plt.ioff()
 plt.show()
-
-
-
-
-
-
