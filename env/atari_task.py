@@ -1,8 +1,7 @@
 import gym
 import sys
 import numpy as np
-from atari_wrapper import *
-
+#from env import atari_wrapper
 
 class BasicTask:
     def __init__(self):

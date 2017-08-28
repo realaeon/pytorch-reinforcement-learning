@@ -1,13 +1,19 @@
 import math
+import random
 import torch
 from torch.autograd import Variable
+import torch.nn.functional as F
+#import torchvision.transforms as T
 import matplotlib.pyplot as plt
-
 from itertools import count
-from memory import *#ReplayMemory
-from model import *
-from tf_logger import Logger
-from atari_task import *
+
+import sys
+sys.path.append('..')
+from env.atari_task import CartPole
+from core.memory import ReplayMemory,Transition
+from core.model import testNet
+#from tf_logger import Logger
+from utils import *
 
 class DQNAgent:
     def __init__(self):
