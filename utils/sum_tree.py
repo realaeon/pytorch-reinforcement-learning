@@ -56,8 +56,9 @@ class SumTree(object):
     def print_tree(self):
         for k in range(1, self.tree_level+1):
             for j in range(2**(k-1)-1, 2**k-1):
-                print(self.tree[j], end=' ')
-            print()
+                pass
+                #print(self.tree[j], end=' ')
+            #print()
 
     def filled_size(self):
         return self.size
@@ -67,4 +68,4 @@ if __name__ == '__main__':
     for i in range(20):
         s.add(2**i, i)
     s.print_tree()
-    print(s.find(0.5))
+    #print(s.find(0.5))

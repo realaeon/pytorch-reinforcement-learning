@@ -12,6 +12,7 @@ sys.path.append('..')
 from env.atari_task import CartPole
 from core.memory import ReplayMemory,Transition
 from core.model import Net
+from core.policy_greedy import GreedyPolicy
 #from tf_logger import Logger
 from utils import plot
 
@@ -21,25 +22,22 @@ class DQNAgent:
         self.batch_size = 32
         self.num_episodes = 2000
         self.task = CartPole()
-        self.memory = ReplayMemory(2000,self.batch_size)
+        self.memory = ReplayMemory(5000,self.batch_size)
         self.model=Net(4,2)
         self.targetM = Net(4,2)
         self.targetM.load_state_dict(self.model.state_dict())
-        self.optimizer = torch.optim.Adam(self.model.parameters(),0.01)
-        self.GAMMA= 0.9
-        self.episode_durations= [] 
+        self.optimizer = torch.optim.Adam(self.model.parameters(),0.005)
+        self.GAMMA= 0.99
+        self.policy = GreedyPolicy(EPS_START = 0.9,EPS_END = 0.02,EPS_DECAY = 500)
+        self.episode_durations= []
+        self.explorat_staps=50
 
     def select_action(self,state):
-        #print(state)
-        sample = random.random()
-#        eps_threshold = EPS_END + (EPS_START - EPS_END) * \ math.exp(-1. * self.steps_done / EPS_DECAY)
         self.steps_done += 1
-
-        if sample < 0.9 :
+        if self.policy.sample_b(self.steps_done):
             return self.model(
                 Variable(state)).data.max(1)[1][0]
         else:
-            #print('random')
             return random.randrange(2)
 
     def optimize_model(self):
@@ -80,15 +78,11 @@ class DQNAgent:
                 next_state, reward, done, _ = self.task.step(action)
 #                print(reward)
                 if done:
-                    reward=-3
-
+                    reward=-5
                 #self.task.env.render()
                 next_state = torch.FloatTensor(next_state).unsqueeze(0)
                 reward = torch.Tensor([reward])
                 action = torch.LongTensor([action]).unsqueeze(0)
-
-
-
                 self.memory.push(state, action, next_state, reward, done)
                 state = next_state
                 #if t % 10 ==0:
@@ -105,9 +99,6 @@ class DQNAgent:
                 plot.plot_line(episode_num,episode_durations)
         #self.task.env.render(close=True)
         self.task.env.close()
-#        plot.ioff()
-#        plot.show()
-        
 
 #if __name__ == '__main__':
 a= DQNAgent()

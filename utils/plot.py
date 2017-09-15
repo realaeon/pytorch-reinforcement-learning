@@ -23,6 +23,6 @@ def plot_line(xs, ys_population):
     plotly.offline.plot({
         'data': [trace_upper, trace_mean, trace_lower, trace_min, trace_max],
         'layout': dict(title='Rewards',
-                   xaxis={'title': 'Step'},
+                   xaxis={'title': 'episode'},
                    yaxis={'title': 'Average Reward'})
     }, filename='rewards.html', auto_open=False)
