@@ -12,7 +12,7 @@ def fanin_init(size, fanin=None):
     return torch.Tensor(size).uniform_(-v, v)
 
 class ActorNet(nn.Module):
-    def __init__(self, nb_states, nb_actions, hidden1=400, hidden2=300, init_w=3e-4):
+    def __init__(self, nb_states, nb_actions, hidden1=400*2, hidden2=300*2, init_w=3e-5):
         super(ActorNet, self).__init__()
         self.fc1 = nn.Linear(nb_states, hidden1)
         self.fc2 = nn.Linear(hidden1, hidden2)
@@ -36,7 +36,7 @@ class ActorNet(nn.Module):
         return out
 
 class CriticNet(nn.Module):
-    def __init__(self, nb_states, nb_actions, hidden1=400, hidden2=300, init_w=3e-3):
+    def __init__(self, nb_states, nb_actions, hidden1=400*2, hidden2=300*2, init_w=3e-4):
         super(CriticNet, self).__init__()
         self.fc1 = nn.Linear(nb_states, hidden1)
         self.fc2 = nn.Linear(hidden1+nb_actions, hidden2)
