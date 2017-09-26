@@ -12,17 +12,18 @@ Implementations of some deep RL algorithms by PyTorch
 - [x] DQN
 - [x] DDPG
 - [x] A3C
-- [] A2C/ACKTR
-[Kronecker-factored approximation][https://arxiv.org/abs/1708.05144]
+- [ ] A2C/ACKTR
+
+[Kronecker-factored approximation](https://arxiv.org/abs/1708.05144)
 
 ### Optimer
-- [] TRPO
-- [] PPO
+- [ ] TRPO
+- [ ] PPO
 
 ### Memory
 - [x] Prioritized Experience Replay 
 
 ### Polcy
 - [x] $\epsilon$-greedy
-- [] UCB
-- [] Thompson Sampling
+- [ ] UCB
+- [ ] Thompson Sampling
